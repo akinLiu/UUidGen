@@ -634,11 +634,7 @@ func wndProc(hwnd uintptr, umsg uint32, wParam, lParam uintptr) uintptr {
 			procSetBkMode.Call(wParam, transparent)
 			return bgBrush
 		}
-		procSetBkMode.Call(wParam, transparent)
-		return bgBrush
-
-	case wmCtlColorEdit:
-		hwndCtrl := lParam
+		// IMPORTANT: Read-only EDIT control sends WM_CTLCOLORSTATIC, not WM_CTLCOLOREDIT!
 		if hwndCtrl == editHWnd {
 			// SN value field: bright neon green on dark card
 			procSetTextColor.Call(wParam, rgb(0, 255, 136)) // Neon green
@@ -646,9 +642,15 @@ func wndProc(hwnd uintptr, umsg uint32, wParam, lParam uintptr) uintptr {
 			procSetBkColor.Call(wParam, rgb(22, 28, 38))    // Card background
 			return cardBrush
 		}
-		// Default for other edit controls
 		procSetBkMode.Call(wParam, transparent)
 		return bgBrush
+
+	case wmCtlColorEdit:
+		// Non-readonly edit controls (not used in this app, but kept for safety)
+		procSetTextColor.Call(wParam, rgb(0, 255, 136))
+		procSetBkMode.Call(wParam, 2)
+		procSetBkColor.Call(wParam, rgb(22, 28, 38))
+		return cardBrush
 
 	case wmDestroy:
 		if guiFont != 0 {
