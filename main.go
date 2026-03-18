@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"runtime"
 
 	"uuidgen/gui"
 	"uuidgen/uuid"
@@ -22,12 +21,6 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println(uuidStr)
-		return
-	}
-
-	// Windows GUI will load system info asynchronously to avoid UI freeze
-	if runtime.GOOS == "windows" && uuidErr == nil {
-		gui.RunWithSystemInfoAsync(uuidStr)
 		return
 	}
 

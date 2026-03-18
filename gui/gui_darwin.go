@@ -36,7 +36,7 @@ func Run(uuidStr string, uuidErr error) {
 
 // RunWithSystemInfo starts the GUI with full system information
 func RunWithSystemInfo(info *sysinfo.SystemInfo) {
-	runWithInfo(info.UUID, nil, info)
+	runWithInfo(info.DiskSerial, nil, info)
 }
 
 func runWithInfo(uuidStr string, uuidErr error, sysInfo *sysinfo.SystemInfo) {

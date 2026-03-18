@@ -3,7 +3,6 @@
 package gui
 
 import (
-	"fmt"
 	"syscall"
 	"unsafe"
 
@@ -14,58 +13,36 @@ var (
 	user32   = syscall.NewLazyDLL("user32.dll")
 	kernel32 = syscall.NewLazyDLL("kernel32.dll")
 	gdi32    = syscall.NewLazyDLL("gdi32.dll")
-	uxtheme  = syscall.NewLazyDLL("uxtheme.dll")
-	dwmapi   = syscall.NewLazyDLL("dwmapi.dll")
 
-	procRegisterClassEx       = user32.NewProc("RegisterClassExW")
-	procCreateWindowEx        = user32.NewProc("CreateWindowExW")
-	procShowWindow            = user32.NewProc("ShowWindow")
-	procUpdateWindow          = user32.NewProc("UpdateWindow")
-	procGetMessage            = user32.NewProc("GetMessageW")
-	procTranslateMessage      = user32.NewProc("TranslateMessage")
-	procDispatchMessage       = user32.NewProc("DispatchMessageW")
-	procDefWindowProc         = user32.NewProc("DefWindowProcW")
-	procPostQuitMessage       = user32.NewProc("PostQuitMessage")
-	procSendMessage           = user32.NewProc("SendMessageW")
-	procGetModuleHandle       = kernel32.NewProc("GetModuleHandleW")
-	procLoadCursor            = user32.NewProc("LoadCursorW")
-	procLoadIcon              = user32.NewProc("LoadIconW")
-	procGetSystemMetrics      = user32.NewProc("GetSystemMetrics")
-	procSetWindowPos          = user32.NewProc("SetWindowPos")
-	procMessageBox            = user32.NewProc("MessageBoxW")
-	procGetDC                 = user32.NewProc("GetDC")
-	procReleaseDC             = user32.NewProc("ReleaseDC")
-	procOpenClipboard         = user32.NewProc("OpenClipboard")
-	procCloseClipboard        = user32.NewProc("CloseClipboard")
-	procEmptyClipboard        = user32.NewProc("EmptyClipboard")
-	procSetClipboardData      = user32.NewProc("SetClipboardData")
-	procGlobalAlloc           = kernel32.NewProc("GlobalAlloc")
-	procGlobalLock            = kernel32.NewProc("GlobalLock")
-	procGlobalUnlock          = kernel32.NewProc("GlobalUnlock")
-	procGetStockObject        = gdi32.NewProc("GetStockObject")
-	procSetFocus              = user32.NewProc("SetFocus")
-	procDestroyWindow         = user32.NewProc("DestroyWindow")
-	procEnableWindow          = user32.NewProc("EnableWindow")
-	procGetClientRect         = user32.NewProc("GetClientRect")
-	procInvalidateRect        = user32.NewProc("InvalidateRect")
-	procBeginPaint            = user32.NewProc("BeginPaint")
-	procEndPaint              = user32.NewProc("EndPaint")
-	procFillRect              = user32.NewProc("FillRect")
-	procCreateSolidBrush      = gdi32.NewProc("CreateSolidBrush")
-	procDeleteObject          = gdi32.NewProc("DeleteObject")
-	procSetBkMode             = gdi32.NewProc("SetBkMode")
-	procDrawText              = user32.NewProc("DrawTextW")
-	procCreateFont            = gdi32.NewProc("CreateFontW")
-	procSelectObject          = gdi32.NewProc("SelectObject")
-	procSetTextColor          = gdi32.NewProc("SetTextColor")
-	procSetBkColor            = gdi32.NewProc("SetBkColor")
-	procGetSysColorBrush      = user32.NewProc("GetSysColorBrush")
-	procSetWindowTheme        = uxtheme.NewProc("SetWindowTheme")
-	procDwmSetWindowAttribute = dwmapi.NewProc("DwmSetWindowAttribute")
-	procSetTimer              = user32.NewProc("SetTimer")
-	procKillTimer             = user32.NewProc("KillTimer")
-	procCreateRoundRectRgn    = gdi32.NewProc("CreateRoundRectRgn")
-	procSetWindowRgn          = user32.NewProc("SetWindowRgn")
+	procRegisterClassEx  = user32.NewProc("RegisterClassExW")
+	procCreateWindowEx   = user32.NewProc("CreateWindowExW")
+	procShowWindow       = user32.NewProc("ShowWindow")
+	procUpdateWindow     = user32.NewProc("UpdateWindow")
+	procGetMessage       = user32.NewProc("GetMessageW")
+	procTranslateMessage = user32.NewProc("TranslateMessage")
+	procDispatchMessage  = user32.NewProc("DispatchMessageW")
+	procDefWindowProc    = user32.NewProc("DefWindowProcW")
+	procPostQuitMessage  = user32.NewProc("PostQuitMessage")
+	procSendMessage      = user32.NewProc("SendMessageW")
+	procGetModuleHandle  = kernel32.NewProc("GetModuleHandleW")
+	procLoadCursor       = user32.NewProc("LoadCursorW")
+	procLoadIcon         = user32.NewProc("LoadIconW")
+	procGetSystemMetrics = user32.NewProc("GetSystemMetrics")
+	procOpenClipboard    = user32.NewProc("OpenClipboard")
+	procCloseClipboard   = user32.NewProc("CloseClipboard")
+	procEmptyClipboard   = user32.NewProc("EmptyClipboard")
+	procSetClipboardData = user32.NewProc("SetClipboardData")
+	procGlobalAlloc      = kernel32.NewProc("GlobalAlloc")
+	procGlobalLock       = kernel32.NewProc("GlobalLock")
+	procGlobalUnlock     = kernel32.NewProc("GlobalUnlock")
+	procCreateSolidBrush = gdi32.NewProc("CreateSolidBrush")
+	procDeleteObject     = gdi32.NewProc("DeleteObject")
+	procSetBkMode        = gdi32.NewProc("SetBkMode")
+	procCreateFont       = gdi32.NewProc("CreateFontW")
+	procSetTextColor     = gdi32.NewProc("SetTextColor")
+	procSetBkColor       = gdi32.NewProc("SetBkColor")
+	procSetTimer         = user32.NewProc("SetTimer")
+	procKillTimer        = user32.NewProc("KillTimer")
 )
 
 const (
@@ -75,20 +52,12 @@ const (
 	wsMinimizeBox = 0x00020000
 	wsVisible     = 0x10000000
 	wsChild       = 0x40000000
-	wsBorder      = 0x00800000
 	wsTabStop     = 0x00010000
-	wsGroup       = 0x00020000
 
-	wsExClientEdge = 0x00000200
-
-	bsPushButton  = 0x00000000
-	esLeft        = 0x0000
-	esCenter      = 0x0001
-	esReadOnly    = 0x0800
-	esAutoHScroll = 0x0080
-	ssLeft        = 0x0000
-	ssCenter      = 0x0001
-	ssNotify      = 0x0100
+	bsPushButton = 0x00000000
+	esCenter     = 0x0001
+	esReadOnly   = 0x0800
+	ssCenter     = 0x0001
 
 	wmDestroy        = 0x0002
 	wmCommand        = 0x0111
@@ -96,13 +65,10 @@ const (
 	wmSetFont        = 0x0030
 	wmCtlColorStatic = 0x0138
 	wmCtlColorEdit   = 0x0133
-	wmPaint          = 0x000F
 	wmTimer          = 0x0113
 	wmUpdateDiskSN   = 0x0400 + 1 // WM_APP + 1
 
-	swShow      = 5
-	swpNoSize   = 0x0001
-	swpNoZOrder = 0x0004
+	swShow = 5
 
 	smCxScreen = 0
 	smCyScreen = 1
@@ -113,27 +79,8 @@ const (
 	idcArrow       = 32512
 	idiApplication = 32512
 
-	colorWindow     = 5
-	colorBtnFace    = 15
-	colorWindowText = 8
-
 	transparent = 1
-
-	dtCenter     = 0x0001
-	dtVCenter    = 0x0004
-	dtSingleLine = 0x0020
-
-	defaultGuiFont = 17
-
-	bnClicked = 0
-
-	// Dark theme colors
-	colorBgDark      = 0x1E1E1E
-	colorCardDark    = 0x2C2C2E
-	colorTextLight   = 0xFFFFFF
-	colorTextGray    = 0x8E8E93
-	colorAccentBlue  = 0x0A84FF
-	colorAccentGreen = 0x30D158
+	bnClicked   = 0
 )
 
 // RGB creates a COLORREF from RGB values
@@ -142,9 +89,8 @@ func rgb(r, g, b uint32) uintptr {
 }
 
 const (
-	idEditUUID   = 101
-	idBtnCopy    = 102
-	idLabelTitle = 103
+	idEditUUID = 101
+	idBtnCopy  = 102
 )
 
 type wndClassEx struct {
@@ -175,87 +121,46 @@ type msg struct {
 	pt      point
 }
 
-type rect struct {
-	left, top, right, bottom int32
-}
-
-type paintStruct struct {
-	hdc         uintptr
-	fErase      int32
-	rcPaint     rect
-	fRestore    int32
-	fIncUpdate  int32
-	rgbReserved [32]byte
-}
-
 var (
-	mainHWnd      uintptr
-	editHWnd      uintptr
-	btnHWnd       uintptr
-	titleHWnd     uintptr
-	subtitleHWnd  uintptr
-	cardHWnd      uintptr
-	cpuLabelHWnd  uintptr
-	cpuValueHWnd  uintptr
-	memLabelHWnd  uintptr
-	memValueHWnd  uintptr
-	diskLabelHWnd uintptr
-	diskValueHWnd uintptr
-	storedUUID    string
-	sysInfo       *sysinfo.SystemInfo
-	guiFont       uintptr
-	smallFont     uintptr
-	titleFont     uintptr
-	subtitleFont  uintptr
-	monoFont      uintptr
-	bgBrush       uintptr
-	cardBrush     uintptr
-	timerID       uintptr
+	mainHWnd     uintptr
+	editHWnd     uintptr
+	btnHWnd      uintptr
+	titleHWnd    uintptr
+	subtitleHWnd uintptr
+	storedUUID   string
+	sysInfo      *sysinfo.SystemInfo
+	guiFont      uintptr
+	titleFont    uintptr
+	subtitleFont uintptr
+	monoFont     uintptr
+	bgBrush      uintptr
+	cardBrush    uintptr
+	timerID      uintptr
 )
 
-// Run starts the Win32 native GUI displaying the given UUID string.
+// Run starts the Win32 native GUI displaying the disk SN.
 func Run(uuidStr string, uuidErr error) {
 	if uuidErr != nil {
 		showErrorDialog(uuidErr)
 		return
 	}
 
-	storedUUID = uuidStr
+	storedUUID = "Loading..."
 	sysInfo = nil
-	createMainWindow()
-}
-
-// RunWithSystemInfo starts the GUI with full system information
-func RunWithSystemInfo(info *sysinfo.SystemInfo) {
-	storedUUID = info.UUID
-	sysInfo = info
-	createMainWindow()
-}
-
-// RunWithSystemInfoAsync starts the GUI immediately and loads system info in background
-func RunWithSystemInfoAsync(uuidStr string) {
-	storedUUID = uuidStr
-	sysInfo = nil
-
-	// Create window first to show UI immediately
-	createMainWindowAsync()
-}
-
-// createMainWindowAsync creates window and loads data asynchronously
-func createMainWindowAsync() {
+	
 	hInstance, _, _ := procGetModuleHandle.Call(0)
 
 	className, _ := syscall.UTF16PtrFromString("UUidGenWindow")
 	cursor, _, _ := procLoadCursor.Call(0, idcArrow)
 	icon, _, _ := procLoadIcon.Call(0, idiApplication)
 
-	// Create dark background brush - deeper black for tech feel
+	// Create dark background brush
 	bgBrush, _, _ = procCreateSolidBrush.Call(rgb(12, 12, 16))
 	cardBrush, _, _ = procCreateSolidBrush.Call(rgb(22, 28, 38))
 
 	wc := wndClassEx{
 		cbSize:        uint32(unsafe.Sizeof(wndClassEx{})),
-		style:         3, // CS_HREDRAW | CS_VREDRAW
+		style:         3,
 		lpfnWndProc:   syscall.NewCallback(wndProc),
 		hInstance:     hInstance,
 		hIcon:         icon,
@@ -268,12 +173,9 @@ func createMainWindowAsync() {
 	procRegisterClassEx.Call(uintptr(unsafe.Pointer(&wc)))
 
 	windowTitle, _ := syscall.UTF16PtrFromString("UUidGen")
-
-	// Window size - compact for single SN display
 	wWidth := 580
 	wHeight := 320
 
-	// Center window on screen
 	screenWidth, _, _ := procGetSystemMetrics.Call(smCxScreen)
 	screenHeight, _, _ := procGetSystemMetrics.Call(smCyScreen)
 	x := (int(screenWidth) - wWidth) / 2
@@ -288,32 +190,28 @@ func createMainWindowAsync() {
 		0, 0, hInstance, 0,
 	)
 
-	// Show window immediately
 	procShowWindow.Call(mainHWnd, swShow)
 	procUpdateWindow.Call(mainHWnd)
 
-	// Load system info in background using goroutine
+	// Load disk SN in background
 	go func() {
-		info, err := sysinfo.GetSystemInfo(storedUUID)
-		if err == nil && info != nil {
+		info, err := sysinfo.GetSystemInfo("")
+		if err == nil && info != nil && info.DiskSerial != "" && info.DiskSerial != "N/A" {
 			sysInfo = info
-			// Post message to main thread to update UI
-			if info.DiskSerial != "" && info.DiskSerial != "N/A" {
-				diskSN := syscall.StringToUTF16Ptr(info.DiskSerial)
-				procSendMessage.Call(mainHWnd, wmUpdateDiskSN, 0, uintptr(unsafe.Pointer(diskSN)))
-			}
+			diskSN := syscall.StringToUTF16Ptr(info.DiskSerial)
+			procSendMessage.Call(mainHWnd, wmUpdateDiskSN, 0, uintptr(unsafe.Pointer(diskSN)))
 		}
 	}()
 
 	// Message loop
-	var msg msg
+	var m msg
 	for {
-		ret, _, _ := procGetMessage.Call(uintptr(unsafe.Pointer(&msg)), 0, 0, 0)
+		ret, _, _ := procGetMessage.Call(uintptr(unsafe.Pointer(&m)), 0, 0, 0)
 		if ret == 0 {
 			break
 		}
-		procTranslateMessage.Call(uintptr(unsafe.Pointer(&msg)))
-		procDispatchMessage.Call(uintptr(unsafe.Pointer(&msg)))
+		procTranslateMessage.Call(uintptr(unsafe.Pointer(&m)))
+		procDispatchMessage.Call(uintptr(unsafe.Pointer(&m)))
 	}
 }
 
@@ -443,68 +341,6 @@ func errorWndProc(hwnd uintptr, umsg uint32, wParam, lParam uintptr) uintptr {
 
 	ret, _, _ := procDefWindowProc.Call(hwnd, uintptr(umsg), wParam, lParam)
 	return ret
-}
-
-func createMainWindow() {
-	hInstance, _, _ := procGetModuleHandle.Call(0)
-
-	className, _ := syscall.UTF16PtrFromString("UUidGenWindow")
-	cursor, _, _ := procLoadCursor.Call(0, idcArrow)
-	icon, _, _ := procLoadIcon.Call(0, idiApplication)
-
-	// Create dark background brush - deeper black for tech feel
-	bgBrush, _, _ = procCreateSolidBrush.Call(rgb(12, 12, 16))
-	cardBrush, _, _ = procCreateSolidBrush.Call(rgb(22, 28, 38))
-
-	wc := wndClassEx{
-		cbSize:        uint32(unsafe.Sizeof(wndClassEx{})),
-		style:         3, // CS_HREDRAW | CS_VREDRAW
-		lpfnWndProc:   syscall.NewCallback(wndProc),
-		hInstance:     hInstance,
-		hIcon:         icon,
-		hCursor:       cursor,
-		hbrBackground: bgBrush,
-		lpszClassName: className,
-		hIconSm:       icon,
-	}
-
-	procRegisterClassEx.Call(uintptr(unsafe.Pointer(&wc)))
-
-	windowTitle, _ := syscall.UTF16PtrFromString("UUidGen")
-
-	// Window size - compact for single SN display
-	wWidth := 580
-	wHeight := 320
-
-	// Center on screen
-	screenW, _, _ := procGetSystemMetrics.Call(smCxScreen)
-	screenH, _, _ := procGetSystemMetrics.Call(smCyScreen)
-	posX := (int(screenW) - wWidth) / 2
-	posY := (int(screenH) - wHeight) / 2
-
-	mainHWnd, _, _ = procCreateWindowEx.Call(
-		0,
-		uintptr(unsafe.Pointer(className)),
-		uintptr(unsafe.Pointer(windowTitle)),
-		uintptr(wsOverlapped|wsCaption|wsSysMenu|wsMinimizeBox|wsVisible),
-		uintptr(posX), uintptr(posY),
-		uintptr(wWidth), uintptr(wHeight),
-		0, 0, hInstance, 0,
-	)
-
-	procShowWindow.Call(mainHWnd, swShow)
-	procUpdateWindow.Call(mainHWnd)
-
-	// Message loop
-	var m msg
-	for {
-		ret, _, _ := procGetMessage.Call(uintptr(unsafe.Pointer(&m)), 0, 0, 0)
-		if ret == 0 {
-			break
-		}
-		procTranslateMessage.Call(uintptr(unsafe.Pointer(&m)))
-		procDispatchMessage.Call(uintptr(unsafe.Pointer(&m)))
-	}
 }
 
 func wndProc(hwnd uintptr, umsg uint32, wParam, lParam uintptr) uintptr {
@@ -723,29 +559,6 @@ func createMonoFont(height int) uintptr {
 		uintptr(unsafe.Pointer(fontName)),
 	)
 	return font
-}
-
-// formatBytes converts bytes to human readable format
-func formatBytes(bytes uint64) string {
-	const (
-		KB = 1024
-		MB = 1024 * KB
-		GB = 1024 * MB
-		TB = 1024 * GB
-	)
-
-	switch {
-	case bytes >= TB:
-		return fmt.Sprintf("%.2f TB", float64(bytes)/float64(TB))
-	case bytes >= GB:
-		return fmt.Sprintf("%.2f GB", float64(bytes)/float64(GB))
-	case bytes >= MB:
-		return fmt.Sprintf("%.2f MB", float64(bytes)/float64(MB))
-	case bytes >= KB:
-		return fmt.Sprintf("%.2f KB", float64(bytes)/float64(KB))
-	default:
-		return fmt.Sprintf("%d B", bytes)
-	}
 }
 
 func copyToClipboard(text string) {
