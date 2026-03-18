@@ -125,8 +125,8 @@ func GetMemoryInfo() (total uint64, err error) {
 
 // GetDiskInfo retrieves disk serial number and model using WMIC
 func GetDiskInfo() (serial, model string, err error) {
-	// Get disk model
-	cmd := exec.Command("wmic", "diskdrive", "get", "Model", "/value")
+	// Get disk model - try to get first physical disk
+	cmd := exec.Command("wmic", "diskdrive", "where", "index=0", "get", "Model", "/value")
 	output, err := cmd.Output()
 	if err == nil {
 		lines := strings.Split(string(output), "\n")
@@ -140,8 +140,9 @@ func GetDiskInfo() (serial, model string, err error) {
 		}
 	}
 
-	// Get disk serial number
-	cmd = exec.Command("wmic", "diskdrive", "get", "SerialNumber", "/value")
+	// Get disk serial number - try multiple methods
+	// Method 1: Get first physical disk serial
+	cmd = exec.Command("wmic", "diskdrive", "where", "index=0", "get", "SerialNumber", "/value")
 	output, err = cmd.Output()
 	if err == nil {
 		lines := strings.Split(string(output), "\n")
@@ -151,6 +152,42 @@ func GetDiskInfo() (serial, model string, err error) {
 				serial = strings.TrimPrefix(line, "SerialNumber=")
 				serial = strings.TrimSpace(serial)
 				break
+			}
+		}
+	}
+
+	// Method 2: If empty, try getting from physical media
+	if serial == "" {
+		cmd = exec.Command("wmic", "path", "win32_physicalmedia", "where", "Tag='\\\\.\\PHYSICALDRIVE0'", "get", "SerialNumber", "/value")
+		output, err = cmd.Output()
+		if err == nil {
+			lines := strings.Split(string(output), "\n")
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if strings.HasPrefix(line, "SerialNumber=") {
+					serial = strings.TrimPrefix(line, "SerialNumber=")
+					serial = strings.TrimSpace(serial)
+					break
+				}
+			}
+		}
+	}
+
+	// Method 3: Try getting from logical disk to physical disk mapping
+	if serial == "" {
+		cmd = exec.Command("wmic", "path", "win32_physicalmedia", "get", "SerialNumber", "/value")
+		output, err = cmd.Output()
+		if err == nil {
+			lines := strings.Split(string(output), "\n")
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if strings.HasPrefix(line, "SerialNumber=") {
+					serial = strings.TrimPrefix(line, "SerialNumber=")
+					serial = strings.TrimSpace(serial)
+					if serial != "" {
+						break
+					}
+				}
 			}
 		}
 	}

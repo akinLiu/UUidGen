@@ -471,8 +471,8 @@ func wndProc(hwnd uintptr, umsg uint32, wParam, lParam uintptr) uintptr {
 		)
 
 		// Get disk SN to display and store for copy
-		diskSN := "N/A"
-		if sysInfo != nil && sysInfo.DiskSerial != "" {
+		diskSN := "Unknown"
+		if sysInfo != nil && sysInfo.DiskSerial != "" && sysInfo.DiskSerial != "N/A" {
 			diskSN = sysInfo.DiskSerial
 		}
 		// Store SN for copy button
