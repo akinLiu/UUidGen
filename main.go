@@ -7,7 +7,6 @@ import (
 	"runtime"
 
 	"uuidgen/gui"
-	"uuidgen/sysinfo"
 	"uuidgen/uuid"
 )
 
@@ -26,13 +25,10 @@ func main() {
 		return
 	}
 
-	// Get full system info on Windows
+	// Windows GUI will load system info asynchronously to avoid UI freeze
 	if runtime.GOOS == "windows" && uuidErr == nil {
-		info, err := sysinfo.GetSystemInfo(uuidStr)
-		if err == nil {
-			gui.RunWithSystemInfo(info)
-			return
-		}
+		gui.RunWithSystemInfoAsync(uuidStr)
+		return
 	}
 
 	gui.Run(uuidStr, uuidErr)

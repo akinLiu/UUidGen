@@ -98,6 +98,7 @@ const (
 	wmCtlColorEdit   = 0x0133
 	wmPaint          = 0x000F
 	wmTimer          = 0x0113
+	wmUpdateDiskSN   = 0x0400 + 1 // WM_APP + 1
 
 	swShow      = 5
 	swpNoSize   = 0x0001
@@ -229,6 +230,91 @@ func RunWithSystemInfo(info *sysinfo.SystemInfo) {
 	storedUUID = info.UUID
 	sysInfo = info
 	createMainWindow()
+}
+
+// RunWithSystemInfoAsync starts the GUI immediately and loads system info in background
+func RunWithSystemInfoAsync(uuidStr string) {
+	storedUUID = uuidStr
+	sysInfo = nil
+
+	// Create window first to show UI immediately
+	createMainWindowAsync()
+}
+
+// createMainWindowAsync creates window and loads data asynchronously
+func createMainWindowAsync() {
+	hInstance, _, _ := procGetModuleHandle.Call(0)
+
+	className, _ := syscall.UTF16PtrFromString("UUidGenWindow")
+	cursor, _, _ := procLoadCursor.Call(0, idcArrow)
+	icon, _, _ := procLoadIcon.Call(0, idiApplication)
+
+	// Create dark background brush - deeper black for tech feel
+	bgBrush, _, _ = procCreateSolidBrush.Call(rgb(12, 12, 16))
+	cardBrush, _, _ = procCreateSolidBrush.Call(rgb(22, 28, 38))
+
+	wc := wndClassEx{
+		cbSize:        uint32(unsafe.Sizeof(wndClassEx{})),
+		style:         3, // CS_HREDRAW | CS_VREDRAW
+		lpfnWndProc:   syscall.NewCallback(wndProc),
+		hInstance:     hInstance,
+		hIcon:         icon,
+		hCursor:       cursor,
+		hbrBackground: bgBrush,
+		lpszClassName: className,
+		hIconSm:       icon,
+	}
+
+	procRegisterClassEx.Call(uintptr(unsafe.Pointer(&wc)))
+
+	windowTitle, _ := syscall.UTF16PtrFromString("UUidGen")
+
+	// Window size - compact for single SN display
+	wWidth := 580
+	wHeight := 320
+
+	// Center window on screen
+	screenWidth, _, _ := procGetSystemMetrics.Call(smCxScreen)
+	screenHeight, _, _ := procGetSystemMetrics.Call(smCyScreen)
+	x := (int(screenWidth) - wWidth) / 2
+	y := (int(screenHeight) - wHeight) / 2
+
+	mainHWnd, _, _ = procCreateWindowEx.Call(
+		0,
+		uintptr(unsafe.Pointer(className)),
+		uintptr(unsafe.Pointer(windowTitle)),
+		uintptr(wsOverlapped|wsCaption|wsSysMenu|wsMinimizeBox),
+		uintptr(x), uintptr(y), uintptr(wWidth), uintptr(wHeight),
+		0, 0, hInstance, 0,
+	)
+
+	// Show window immediately
+	procShowWindow.Call(mainHWnd, swShow)
+	procUpdateWindow.Call(mainHWnd)
+
+	// Load system info in background using goroutine
+	go func() {
+		info, err := sysinfo.GetSystemInfo(storedUUID)
+		if err == nil && info != nil {
+			sysInfo = info
+			// Post message to main thread to update UI
+			if info.DiskSerial != "" && info.DiskSerial != "N/A" {
+				diskSN := syscall.StringToUTF16Ptr(info.DiskSerial)
+				procSendMessage.Call(mainHWnd, wmUpdateDiskSN, 0, uintptr(unsafe.Pointer(diskSN)))
+			}
+		}
+	}()
+
+	// Message loop
+	var msg msg
+	for {
+		ret, _, _ := procGetMessage.Call(uintptr(unsafe.Pointer(&msg)), 0, 0, 0)
+		if ret == 0 {
+			break
+		}
+		procTranslateMessage.Call(uintptr(unsafe.Pointer(&msg)))
+		procDispatchMessage.Call(uintptr(unsafe.Pointer(&msg)))
+	}
 }
 
 func showErrorDialog(err error) {
@@ -524,6 +610,16 @@ func wndProc(hwnd uintptr, umsg uint32, wParam, lParam uintptr) uintptr {
 		procKillTimer.Call(hwnd, wParam)
 		return 0
 
+	case wmUpdateDiskSN:
+		// Update disk SN text from background thread
+		if lParam != 0 && editHWnd != 0 {
+			procSendMessage.Call(editHWnd, 0x000C, 0, lParam) // WM_SETTEXT
+			// Update stored UUID for copy button
+			diskSN := syscall.UTF16ToString((*[256]uint16)(unsafe.Pointer(lParam))[:])
+			storedUUID = diskSN
+		}
+		return 0
+
 	case wmCtlColorStatic:
 		hwndCtrl := lParam
 		if hwndCtrl == titleHWnd {
@@ -542,11 +638,17 @@ func wndProc(hwnd uintptr, umsg uint32, wParam, lParam uintptr) uintptr {
 		return bgBrush
 
 	case wmCtlColorEdit:
-		// SN value field: bright neon green on dark card
-		procSetTextColor.Call(wParam, rgb(0, 255, 136)) // Neon green
-		procSetBkMode.Call(wParam, 2)                   // OPAQUE mode
-		procSetBkColor.Call(wParam, rgb(22, 28, 38))    // Card background
-		return cardBrush
+		hwndCtrl := lParam
+		if hwndCtrl == editHWnd {
+			// SN value field: bright neon green on dark card
+			procSetTextColor.Call(wParam, rgb(0, 255, 136)) // Neon green
+			procSetBkMode.Call(wParam, 2)                   // OPAQUE mode
+			procSetBkColor.Call(wParam, rgb(22, 28, 38))    // Card background
+			return cardBrush
+		}
+		// Default for other edit controls
+		procSetBkMode.Call(wParam, transparent)
+		return bgBrush
 
 	case wmDestroy:
 		if guiFont != 0 {
