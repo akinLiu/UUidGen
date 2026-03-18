@@ -83,6 +83,7 @@ const (
 
 	bsPushButton  = 0x00000000
 	esLeft        = 0x0000
+	esCenter      = 0x0001
 	esReadOnly    = 0x0800
 	esAutoHScroll = 0x0080
 	ssLeft        = 0x0000
@@ -385,9 +386,9 @@ func createMainWindow() {
 
 	windowTitle, _ := syscall.UTF16PtrFromString("UUidGen")
 
-	// Window size - larger to accommodate system info
+	// Window size - compact for single SN display
 	wWidth := 580
-	wHeight := 520
+	wHeight := 320
 
 	// Center on screen
 	screenW, _, _ := procGetSystemMetrics.Call(smCxScreen)
@@ -426,162 +427,77 @@ func wndProc(hwnd uintptr, umsg uint32, wParam, lParam uintptr) uintptr {
 		hInstance, _, _ := procGetModuleHandle.Call(0)
 
 		// Create fonts
-		titleFont = createGUIFont(24, true)
-		subtitleFont = createGUIFont(13, false)
-		monoFont = createMonoFont(16)
+		titleFont = createGUIFont(28, true)
+		subtitleFont = createGUIFont(14, false)
+		monoFont = createMonoFont(18)
 		guiFont = createGUIFont(14, false)
-		smallFont = createGUIFont(12, false)
 
 		staticClass, _ := syscall.UTF16PtrFromString("STATIC")
 		editClass, _ := syscall.UTF16PtrFromString("EDIT")
 		btnClass, _ := syscall.UTF16PtrFromString("BUTTON")
 
-		// Main title: "System Information"
-		titleText, _ := syscall.UTF16PtrFromString("System Information")
+		// Main title: "Disk Serial Number"
+		titleText, _ := syscall.UTF16PtrFromString("Disk Serial Number")
 		titleHWnd, _, _ = procCreateWindowEx.Call(
 			0,
 			uintptr(unsafe.Pointer(staticClass)),
 			uintptr(unsafe.Pointer(titleText)),
 			uintptr(wsChild|wsVisible|ssCenter),
-			20, 20, 540, 35,
+			20, 30, 540, 40,
 			hwnd, 100, hInstance, 0,
 		)
 		procSendMessage.Call(titleHWnd, wmSetFont, titleFont, 1)
 
-		yPos := uintptr(60)
-
-		// UUID Section
-		uuidLabelText, _ := syscall.UTF16PtrFromString("SMBIOS UUID")
-		uuidLabelHWnd, _, _ := procCreateWindowEx.Call(
+		// Subtitle label
+		subtitleText, _ := syscall.UTF16PtrFromString("Hard Drive SN")
+		subtitleHWnd, _, _ = procCreateWindowEx.Call(
 			0,
 			uintptr(unsafe.Pointer(staticClass)),
-			uintptr(unsafe.Pointer(uuidLabelText)),
-			uintptr(wsChild|wsVisible|ssLeft),
-			40, yPos, 200, 20,
+			uintptr(unsafe.Pointer(subtitleText)),
+			uintptr(wsChild|wsVisible|ssCenter),
+			20, 85, 540, 25,
 			hwnd, 101, hInstance, 0,
 		)
-		procSendMessage.Call(uuidLabelHWnd, wmSetFont, subtitleFont, 1)
+		procSendMessage.Call(subtitleHWnd, wmSetFont, subtitleFont, 1)
 
-		// UUID Card
+		// Card background for SN
 		_, _, _ = procCreateWindowEx.Call(
 			0,
 			uintptr(unsafe.Pointer(staticClass)),
 			0,
 			uintptr(wsChild|wsVisible|ssCenter),
-			40, yPos+22, 500, 40,
+			40, 125, 500, 60,
 			hwnd, 102, hInstance, 0,
 		)
 
-		// UUID Value
-		uuidText, _ := syscall.UTF16PtrFromString(storedUUID)
+		// Get disk SN to display and store for copy
+		diskSN := "N/A"
+		if sysInfo != nil && sysInfo.DiskSerial != "" {
+			diskSN = sysInfo.DiskSerial
+		}
+		// Store SN for copy button
+		storedUUID = diskSN
+
+		// SN Value - large display
+		snText, _ := syscall.UTF16PtrFromString(diskSN)
 		editHWnd, _, _ = procCreateWindowEx.Call(
 			0,
 			uintptr(unsafe.Pointer(editClass)),
-			uintptr(unsafe.Pointer(uuidText)),
-			uintptr(wsChild|wsVisible|wsTabStop|esLeft|esReadOnly|esAutoHScroll),
-			50, yPos+28, 480, 28,
+			uintptr(unsafe.Pointer(snText)),
+			uintptr(wsChild|wsVisible|wsTabStop|esCenter|esReadOnly),
+			50, 140, 480, 32,
 			hwnd, idEditUUID, hInstance, 0,
 		)
 		procSendMessage.Call(editHWnd, wmSetFont, monoFont, 1)
 
-		yPos += 75
-
-		// CPU Section
-		cpuLabelText, _ := syscall.UTF16PtrFromString("CPU")
-		cpuLabelHWnd, _, _ = procCreateWindowEx.Call(
-			0,
-			uintptr(unsafe.Pointer(staticClass)),
-			uintptr(unsafe.Pointer(cpuLabelText)),
-			uintptr(wsChild|wsVisible|ssLeft),
-			40, yPos, 200, 20,
-			hwnd, 103, hInstance, 0,
-		)
-		procSendMessage.Call(cpuLabelHWnd, wmSetFont, subtitleFont, 1)
-
-		cpuValue := "N/A"
-		if sysInfo != nil && sysInfo.CPUModel != "" {
-			cpuValue = sysInfo.CPUModel
-		}
-		cpuValueText, _ := syscall.UTF16PtrFromString(cpuValue)
-		cpuValueHWnd, _, _ = procCreateWindowEx.Call(
-			0,
-			uintptr(unsafe.Pointer(editClass)),
-			uintptr(unsafe.Pointer(cpuValueText)),
-			uintptr(wsChild|wsVisible|esLeft|esReadOnly|esAutoHScroll),
-			40, yPos+22, 500, 28,
-			hwnd, 104, hInstance, 0,
-		)
-		procSendMessage.Call(cpuValueHWnd, wmSetFont, smallFont, 1)
-
-		yPos += 60
-
-		// Memory Section
-		memLabelText, _ := syscall.UTF16PtrFromString("Memory")
-		memLabelHWnd, _, _ = procCreateWindowEx.Call(
-			0,
-			uintptr(unsafe.Pointer(staticClass)),
-			uintptr(unsafe.Pointer(memLabelText)),
-			uintptr(wsChild|wsVisible|ssLeft),
-			40, yPos, 200, 20,
-			hwnd, 105, hInstance, 0,
-		)
-		procSendMessage.Call(memLabelHWnd, wmSetFont, subtitleFont, 1)
-
-		memValue := "N/A"
-		if sysInfo != nil && sysInfo.TotalMemory > 0 {
-			memValue = formatBytes(sysInfo.TotalMemory)
-		}
-		memValueText, _ := syscall.UTF16PtrFromString(memValue)
-		memValueHWnd, _, _ = procCreateWindowEx.Call(
-			0,
-			uintptr(unsafe.Pointer(editClass)),
-			uintptr(unsafe.Pointer(memValueText)),
-			uintptr(wsChild|wsVisible|esLeft|esReadOnly|esAutoHScroll),
-			40, yPos+22, 500, 28,
-			hwnd, 106, hInstance, 0,
-		)
-		procSendMessage.Call(memValueHWnd, wmSetFont, smallFont, 1)
-
-		yPos += 60
-
-		// Disk Section
-		diskLabelText, _ := syscall.UTF16PtrFromString("Disk")
-		diskLabelHWnd, _, _ = procCreateWindowEx.Call(
-			0,
-			uintptr(unsafe.Pointer(staticClass)),
-			uintptr(unsafe.Pointer(diskLabelText)),
-			uintptr(wsChild|wsVisible|ssLeft),
-			40, yPos, 200, 20,
-			hwnd, 107, hInstance, 0,
-		)
-		procSendMessage.Call(diskLabelHWnd, wmSetFont, subtitleFont, 1)
-
-		diskValue := "N/A"
-		if sysInfo != nil && sysInfo.DiskModel != "" {
-			diskValue = sysInfo.DiskModel
-			if sysInfo.DiskSerial != "" && sysInfo.DiskSerial != "N/A" {
-				diskValue += " (SN: " + sysInfo.DiskSerial + ")"
-			}
-		}
-		diskValueText, _ := syscall.UTF16PtrFromString(diskValue)
-		diskValueHWnd, _, _ = procCreateWindowEx.Call(
-			0,
-			uintptr(unsafe.Pointer(editClass)),
-			uintptr(unsafe.Pointer(diskValueText)),
-			uintptr(wsChild|wsVisible|esLeft|esReadOnly|esAutoHScroll),
-			40, yPos+22, 500, 28,
-			hwnd, 108, hInstance, 0,
-		)
-		procSendMessage.Call(diskValueHWnd, wmSetFont, smallFont, 1)
-
-		// Copy button
-		btnText, _ := syscall.UTF16PtrFromString("Copy UUID")
+		// Copy SN button
+		btnText, _ := syscall.UTF16PtrFromString("Copy SN")
 		btnHWnd, _, _ = procCreateWindowEx.Call(
 			0,
 			uintptr(unsafe.Pointer(btnClass)),
 			uintptr(unsafe.Pointer(btnText)),
 			uintptr(wsChild|wsVisible|wsTabStop|bsPushButton),
-			220, 440, 140, 36,
+			220, 220, 140, 40,
 			hwnd, idBtnCopy, hInstance, 0,
 		)
 		procSendMessage.Call(btnHWnd, wmSetFont, guiFont, 1)
@@ -603,43 +519,30 @@ func wndProc(hwnd uintptr, umsg uint32, wParam, lParam uintptr) uintptr {
 
 	case wmTimer:
 		// Restore button text
-		btnText, _ := syscall.UTF16PtrFromString("Copy UUID")
+		btnText, _ := syscall.UTF16PtrFromString("Copy SN")
 		procSendMessage.Call(btnHWnd, 0x000C, 0, uintptr(unsafe.Pointer(btnText)))
 		procKillTimer.Call(hwnd, wParam)
 		return 0
 
 	case wmCtlColorStatic:
 		hwndCtrl := lParam
-		if hwndCtrl == cardHWnd {
-			// Card background color - dark blue tint
-			procSetBkMode.Call(wParam, transparent)
-			return cardBrush
-		}
 		if hwndCtrl == titleHWnd {
-			// Neon cyan title for tech feel
+			// Title: bright cyan
 			procSetTextColor.Call(wParam, rgb(0, 220, 255))
 			procSetBkMode.Call(wParam, transparent)
 			return bgBrush
 		}
 		if hwndCtrl == subtitleHWnd {
-			// Tech blue-gray subtitle
-			procSetTextColor.Call(wParam, rgb(100, 140, 180))
+			// Subtitle: orange/amber for distinction
+			procSetTextColor.Call(wParam, rgb(255, 180, 0))
 			procSetBkMode.Call(wParam, transparent)
 			return bgBrush
-		}
-		// Read-only edit control (UUID) sends WM_CTLCOLORSTATIC, not WM_CTLCOLOREDIT
-		if hwndCtrl == editHWnd {
-			// Bright neon green for UUID - high visibility tech style
-			procSetTextColor.Call(wParam, rgb(0, 255, 136))
-			procSetBkMode.Call(wParam, 2)                // OPAQUE mode
-			procSetBkColor.Call(wParam, rgb(22, 28, 38)) // Card background
-			return cardBrush
 		}
 		procSetBkMode.Call(wParam, transparent)
 		return bgBrush
 
 	case wmCtlColorEdit:
-		// Non-readonly edit controls
+		// SN value field: bright neon green on dark card
 		procSetTextColor.Call(wParam, rgb(0, 255, 136)) // Neon green
 		procSetBkMode.Call(wParam, 2)                   // OPAQUE mode
 		procSetBkColor.Call(wParam, rgb(22, 28, 38))    // Card background
