@@ -6,11 +6,22 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"uuidgen/sysinfo"
 )
 
 // Run starts a GUI dialog displaying the given UUID string.
 // Uses zenity (GTK dialog) if available, otherwise falls back to xmessage.
 func Run(uuidStr string, uuidErr error) {
+	runWithInfo(uuidStr, uuidErr, nil)
+}
+
+// RunWithSystemInfo starts the GUI with full system information
+func RunWithSystemInfo(info *sysinfo.SystemInfo) {
+	runWithInfo(info.UUID, nil, info)
+}
+
+func runWithInfo(uuidStr string, uuidErr error, sysInfo *sysinfo.SystemInfo) {
 	if uuidErr != nil {
 		showErrorDialog(uuidErr)
 		return

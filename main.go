@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 
 	"uuidgen/gui"
+	"uuidgen/sysinfo"
 	"uuidgen/uuid"
 )
 
@@ -22,6 +24,15 @@ func main() {
 		}
 		fmt.Println(uuidStr)
 		return
+	}
+
+	// Get full system info on Windows
+	if runtime.GOOS == "windows" && uuidErr == nil {
+		info, err := sysinfo.GetSystemInfo(uuidStr)
+		if err == nil {
+			gui.RunWithSystemInfo(info)
+			return
+		}
 	}
 
 	gui.Run(uuidStr, uuidErr)

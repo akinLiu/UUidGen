@@ -3,8 +3,11 @@
 package gui
 
 import (
+	"fmt"
 	"syscall"
 	"unsafe"
+
+	"uuidgen/sysinfo"
 )
 
 var (
@@ -82,6 +85,7 @@ const (
 	esLeft        = 0x0000
 	esReadOnly    = 0x0800
 	esAutoHScroll = 0x0080
+	ssLeft        = 0x0000
 	ssCenter      = 0x0001
 	ssNotify      = 0x0100
 
@@ -183,20 +187,28 @@ type paintStruct struct {
 }
 
 var (
-	mainHWnd     uintptr
-	editHWnd     uintptr
-	btnHWnd      uintptr
-	titleHWnd    uintptr
-	subtitleHWnd uintptr
-	cardHWnd     uintptr
-	storedUUID   string
-	guiFont      uintptr
-	titleFont    uintptr
-	subtitleFont uintptr
-	monoFont     uintptr
-	bgBrush      uintptr
-	cardBrush    uintptr
-	timerID      uintptr
+	mainHWnd      uintptr
+	editHWnd      uintptr
+	btnHWnd       uintptr
+	titleHWnd     uintptr
+	subtitleHWnd  uintptr
+	cardHWnd      uintptr
+	cpuLabelHWnd  uintptr
+	cpuValueHWnd  uintptr
+	memLabelHWnd  uintptr
+	memValueHWnd  uintptr
+	diskLabelHWnd uintptr
+	diskValueHWnd uintptr
+	storedUUID    string
+	sysInfo       *sysinfo.SystemInfo
+	guiFont       uintptr
+	smallFont     uintptr
+	titleFont     uintptr
+	subtitleFont  uintptr
+	monoFont      uintptr
+	bgBrush       uintptr
+	cardBrush     uintptr
+	timerID       uintptr
 )
 
 // Run starts the Win32 native GUI displaying the given UUID string.
@@ -207,6 +219,14 @@ func Run(uuidStr string, uuidErr error) {
 	}
 
 	storedUUID = uuidStr
+	sysInfo = nil
+	createMainWindow()
+}
+
+// RunWithSystemInfo starts the GUI with full system information
+func RunWithSystemInfo(info *sysinfo.SystemInfo) {
+	storedUUID = info.UUID
+	sysInfo = info
 	createMainWindow()
 }
 
@@ -365,9 +385,9 @@ func createMainWindow() {
 
 	windowTitle, _ := syscall.UTF16PtrFromString("UUidGen")
 
-	// Window size - larger for better visual
-	wWidth := 540
-	wHeight := 340
+	// Window size - larger to accommodate system info
+	wWidth := 580
+	wHeight := 520
 
 	// Center on screen
 	screenW, _, _ := procGetSystemMetrics.Call(smCxScreen)
@@ -410,56 +430,149 @@ func wndProc(hwnd uintptr, umsg uint32, wParam, lParam uintptr) uintptr {
 		subtitleFont = createGUIFont(13, false)
 		monoFont = createMonoFont(16)
 		guiFont = createGUIFont(14, false)
+		smallFont = createGUIFont(12, false)
 
 		staticClass, _ := syscall.UTF16PtrFromString("STATIC")
 		editClass, _ := syscall.UTF16PtrFromString("EDIT")
 		btnClass, _ := syscall.UTF16PtrFromString("BUTTON")
 
-		// Main title: "Device Identifier"
-		titleText, _ := syscall.UTF16PtrFromString("Device Identifier")
+		// Main title: "System Information"
+		titleText, _ := syscall.UTF16PtrFromString("System Information")
 		titleHWnd, _, _ = procCreateWindowEx.Call(
 			0,
 			uintptr(unsafe.Pointer(staticClass)),
 			uintptr(unsafe.Pointer(titleText)),
 			uintptr(wsChild|wsVisible|ssCenter),
-			20, 30, 500, 35,
+			20, 20, 540, 35,
 			hwnd, 100, hInstance, 0,
 		)
 		procSendMessage.Call(titleHWnd, wmSetFont, titleFont, 1)
 
-		// Subtitle: "SMBIOS UUID"
-		subtitleText, _ := syscall.UTF16PtrFromString("SMBIOS UUID")
-		subtitleHWnd, _, _ = procCreateWindowEx.Call(
+		yPos := uintptr(60)
+
+		// UUID Section
+		uuidLabelText, _ := syscall.UTF16PtrFromString("SMBIOS UUID")
+		uuidLabelHWnd, _, _ := procCreateWindowEx.Call(
 			0,
 			uintptr(unsafe.Pointer(staticClass)),
-			uintptr(unsafe.Pointer(subtitleText)),
-			uintptr(wsChild|wsVisible|ssCenter),
-			20, 70, 500, 20,
+			uintptr(unsafe.Pointer(uuidLabelText)),
+			uintptr(wsChild|wsVisible|ssLeft),
+			40, yPos, 200, 20,
 			hwnd, 101, hInstance, 0,
 		)
-		procSendMessage.Call(subtitleHWnd, wmSetFont, subtitleFont, 1)
+		procSendMessage.Call(uuidLabelHWnd, wmSetFont, subtitleFont, 1)
 
-		// Card background (using static control)
-		cardHWnd, _, _ = procCreateWindowEx.Call(
+		// UUID Card
+		_, _, _ = procCreateWindowEx.Call(
 			0,
 			uintptr(unsafe.Pointer(staticClass)),
 			0,
 			uintptr(wsChild|wsVisible|ssCenter),
-			50, 110, 440, 70,
+			40, yPos+22, 500, 40,
 			hwnd, 102, hInstance, 0,
 		)
 
-		// UUID text field (read-only, inside card)
+		// UUID Value
 		uuidText, _ := syscall.UTF16PtrFromString(storedUUID)
 		editHWnd, _, _ = procCreateWindowEx.Call(
 			0,
 			uintptr(unsafe.Pointer(editClass)),
 			uintptr(unsafe.Pointer(uuidText)),
 			uintptr(wsChild|wsVisible|wsTabStop|esLeft|esReadOnly|esAutoHScroll),
-			60, 130, 420, 28,
+			50, yPos+28, 480, 28,
 			hwnd, idEditUUID, hInstance, 0,
 		)
 		procSendMessage.Call(editHWnd, wmSetFont, monoFont, 1)
+
+		yPos += 75
+
+		// CPU Section
+		cpuLabelText, _ := syscall.UTF16PtrFromString("CPU")
+		cpuLabelHWnd, _, _ = procCreateWindowEx.Call(
+			0,
+			uintptr(unsafe.Pointer(staticClass)),
+			uintptr(unsafe.Pointer(cpuLabelText)),
+			uintptr(wsChild|wsVisible|ssLeft),
+			40, yPos, 200, 20,
+			hwnd, 103, hInstance, 0,
+		)
+		procSendMessage.Call(cpuLabelHWnd, wmSetFont, subtitleFont, 1)
+
+		cpuValue := "N/A"
+		if sysInfo != nil && sysInfo.CPUModel != "" {
+			cpuValue = sysInfo.CPUModel
+		}
+		cpuValueText, _ := syscall.UTF16PtrFromString(cpuValue)
+		cpuValueHWnd, _, _ = procCreateWindowEx.Call(
+			0,
+			uintptr(unsafe.Pointer(editClass)),
+			uintptr(unsafe.Pointer(cpuValueText)),
+			uintptr(wsChild|wsVisible|esLeft|esReadOnly|esAutoHScroll),
+			40, yPos+22, 500, 28,
+			hwnd, 104, hInstance, 0,
+		)
+		procSendMessage.Call(cpuValueHWnd, wmSetFont, smallFont, 1)
+
+		yPos += 60
+
+		// Memory Section
+		memLabelText, _ := syscall.UTF16PtrFromString("Memory")
+		memLabelHWnd, _, _ = procCreateWindowEx.Call(
+			0,
+			uintptr(unsafe.Pointer(staticClass)),
+			uintptr(unsafe.Pointer(memLabelText)),
+			uintptr(wsChild|wsVisible|ssLeft),
+			40, yPos, 200, 20,
+			hwnd, 105, hInstance, 0,
+		)
+		procSendMessage.Call(memLabelHWnd, wmSetFont, subtitleFont, 1)
+
+		memValue := "N/A"
+		if sysInfo != nil && sysInfo.TotalMemory > 0 {
+			memValue = formatBytes(sysInfo.TotalMemory)
+		}
+		memValueText, _ := syscall.UTF16PtrFromString(memValue)
+		memValueHWnd, _, _ = procCreateWindowEx.Call(
+			0,
+			uintptr(unsafe.Pointer(editClass)),
+			uintptr(unsafe.Pointer(memValueText)),
+			uintptr(wsChild|wsVisible|esLeft|esReadOnly|esAutoHScroll),
+			40, yPos+22, 500, 28,
+			hwnd, 106, hInstance, 0,
+		)
+		procSendMessage.Call(memValueHWnd, wmSetFont, smallFont, 1)
+
+		yPos += 60
+
+		// Disk Section
+		diskLabelText, _ := syscall.UTF16PtrFromString("Disk")
+		diskLabelHWnd, _, _ = procCreateWindowEx.Call(
+			0,
+			uintptr(unsafe.Pointer(staticClass)),
+			uintptr(unsafe.Pointer(diskLabelText)),
+			uintptr(wsChild|wsVisible|ssLeft),
+			40, yPos, 200, 20,
+			hwnd, 107, hInstance, 0,
+		)
+		procSendMessage.Call(diskLabelHWnd, wmSetFont, subtitleFont, 1)
+
+		diskValue := "N/A"
+		if sysInfo != nil && sysInfo.DiskModel != "" {
+			diskValue = sysInfo.DiskModel
+			if sysInfo.DiskSerial != "" && sysInfo.DiskSerial != "N/A" {
+				diskValue += " (SN: " + sysInfo.DiskSerial + ")"
+			}
+		}
+		diskValueText, _ := syscall.UTF16PtrFromString(diskValue)
+		diskValueHWnd, _, _ = procCreateWindowEx.Call(
+			0,
+			uintptr(unsafe.Pointer(editClass)),
+			uintptr(unsafe.Pointer(diskValueText)),
+			uintptr(wsChild|wsVisible|esLeft|esReadOnly|esAutoHScroll),
+			40, yPos+22, 500, 28,
+			hwnd, 108, hInstance, 0,
+		)
+		procSendMessage.Call(diskValueHWnd, wmSetFont, smallFont, 1)
 
 		// Copy button
 		btnText, _ := syscall.UTF16PtrFromString("Copy UUID")
@@ -468,7 +581,7 @@ func wndProc(hwnd uintptr, umsg uint32, wParam, lParam uintptr) uintptr {
 			uintptr(unsafe.Pointer(btnClass)),
 			uintptr(unsafe.Pointer(btnText)),
 			uintptr(wsChild|wsVisible|wsTabStop|bsPushButton),
-			200, 210, 140, 36,
+			220, 440, 140, 36,
 			hwnd, idBtnCopy, hInstance, 0,
 		)
 		procSendMessage.Call(btnHWnd, wmSetFont, guiFont, 1)
@@ -603,6 +716,29 @@ func createMonoFont(height int) uintptr {
 		uintptr(unsafe.Pointer(fontName)),
 	)
 	return font
+}
+
+// formatBytes converts bytes to human readable format
+func formatBytes(bytes uint64) string {
+	const (
+		KB = 1024
+		MB = 1024 * KB
+		GB = 1024 * MB
+		TB = 1024 * GB
+	)
+
+	switch {
+	case bytes >= TB:
+		return fmt.Sprintf("%.2f TB", float64(bytes)/float64(TB))
+	case bytes >= GB:
+		return fmt.Sprintf("%.2f GB", float64(bytes)/float64(GB))
+	case bytes >= MB:
+		return fmt.Sprintf("%.2f MB", float64(bytes)/float64(MB))
+	case bytes >= KB:
+		return fmt.Sprintf("%.2f KB", float64(bytes)/float64(KB))
+	default:
+		return fmt.Sprintf("%d B", bytes)
+	}
 }
 
 func copyToClipboard(text string) {

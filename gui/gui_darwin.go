@@ -13,6 +13,8 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+
+	"uuidgen/sysinfo"
 )
 
 var (
@@ -29,6 +31,15 @@ var (
 
 // Run starts the Fyne GUI displaying the given UUID string.
 func Run(uuidStr string, uuidErr error) {
+	runWithInfo(uuidStr, uuidErr, nil)
+}
+
+// RunWithSystemInfo starts the GUI with full system information
+func RunWithSystemInfo(info *sysinfo.SystemInfo) {
+	runWithInfo(info.UUID, nil, info)
+}
+
+func runWithInfo(uuidStr string, uuidErr error, sysInfo *sysinfo.SystemInfo) {
 	a := app.NewWithID("com.uuidgen.app")
 	w := a.NewWindow("UUidGen")
 	w.Resize(fyne.NewSize(520, 320))
